@@ -1,0 +1,7 @@
+limitation 1:
+known limitation: Condition blocks are not parsed or represented
+in parse_policy, condition blocks are ignored
+
+limitation 2:
+In trust_policy_parser , the parse trust statement can only parse statements with only 1 princpal type and 1 identifier
+Both attributes in TrustPrincipal class are str and not ListBucket
