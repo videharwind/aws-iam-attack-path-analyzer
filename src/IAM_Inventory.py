@@ -1,6 +1,8 @@
 from iam_models import *
 from IAM_Enumerator import *
 from trust_policy_parser import parse_trust_policy
+import time
+
 def build_inventory():
     users = []
     groups = []
@@ -37,27 +39,33 @@ def build_inventory():
         userpolicy = enumerate_attached_user_policies(user.name)
         for policydata in userpolicy:
             policy = next(
-                policy for policy in policies
-                if policy.arn == policydata['PolicyArn']
+                (policy for policy in policies if policy.arn == policydata['PolicyArn']),
+                None
             )
+            if policy is None:
+                policy = policy_from_attached_policy_aws(policydata)
             relationships.append(user_policy_relationship(user,policy))
 
     for group in groups:
         grouppolicy = enumerate_attached_group_policies(group.name)
         for policydata in grouppolicy:
             policy = next(
-                policy for policy in policies
-                if policy.arn == policydata['PolicyArn']
+                (policy for policy in policies if policy.arn == policydata['PolicyArn']),
+                None
             )
+            if policy is None:
+                policy = policy_from_attached_policy_aws(policydata)
             relationships.append(group_policy_relationship(group,policy))
 
     for role in roles:
         rolepolicy = enumerate_attached_role_policies(role.name)
         for policydata in rolepolicy:
             policy = next(
-                policy for policy in policies
-                if policy.arn == policydata['PolicyArn']
+                (policy for policy in policies if policy.arn == policydata['PolicyArn']),
+                None
             )
+            if policy is None:
+                policy = policy_from_attached_policy_aws(policydata)
             relationships.append(role_policy_relationship(role,policy))
 
     for role in roles:
@@ -73,5 +81,52 @@ def build_inventory():
         relationships = relationships
     )
 
+def filter_inventory(inventory,prefix="test"):
+    filtered_users = []
+    filtered_groups = []
+    filtered_roles =  []
+    filtered_policies = []
+    filtered_relationships = []
+
+    for user in inventory.users:
+        if user.name.startswith(prefix):
+            filtered_users.append(user)
+
+    for group in inventory.groups:
+        if group.name.startswith(prefix):
+            filtered_groups.append(group)
+
+    for role in inventory.roles:
+        if role.name.startswith(prefix):
+            filtered_roles.append(role)
+
+    for policy in inventory.policies:
+        if policy.name.startswith(prefix):
+            filtered_policies.append(policy)
+
+    allowed_arns = set()
+    for entity in filtered_users + filtered_groups + filtered_policies + filtered_roles:
+        allowed_arns.add(entity.arn)
+
+    for relationship in inventory.relationships:
+        if relationship.source in allowed_arns or relationship.target in allowed_arns:
+            filtered_relationships.append(relationship)
+
+    return IAMInventory(
+        users= filtered_users,
+        groups= filtered_groups,
+        roles = filtered_roles,
+        policies=filtered_policies,
+        relationships=filtered_relationships
+    )
+
+    '''
+    print(filtered_users)
+    print(filtered_groups)
+    print(filtered_roles)
+    print(filtered_policies)
+    '''
+
+
 iaminventory = build_inventory()
-print(iaminventory.relationships)
+filterinventory = filter_inventory(iaminventory)

@@ -35,7 +35,7 @@ def enumerate_policies():
 
     policies = []
 
-    page_iterator = paginator.paginate()
+    page_iterator = paginator.paginate(Scope='Local')
     for page in page_iterator:
         policies.extend(page['Policies'])
     return policies

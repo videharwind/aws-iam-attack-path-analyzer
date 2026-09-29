@@ -13,7 +13,7 @@ def parse_statement(statement_data):
         resource.append(statement_data['Resource'])
     else:
         resource.extend(statement_data['Resource'])
-
+    
     return IAMStatement(
         effect = effect,
         action = action,
@@ -26,4 +26,13 @@ def parse_policy(policy_document):
     for statement in document_statement:
         statements.append(parse_statement(statement))
     return statements
+'''
+document = {
+        'Statement': [
+            {'Action': ['ec2:Describe*'], 'Effect': 'Allow', 'Resource': '*'}
+        ],
+        'Version': '2012-10-17'
+    }
 
+print(parse_policy(document))
+'''

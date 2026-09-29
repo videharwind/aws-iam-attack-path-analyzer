@@ -2,6 +2,14 @@ limitation 1:
 known limitation: Condition blocks are not parsed or represented
 in parse_policy, condition blocks are ignored
 
-limitation 2:
+limitation 2: solved
 In trust_policy_parser , the parse trust statement can only parse statements with only 1 princpal type and 1 identifier
 Both attributes in TrustPrincipal class are str and not ListBucket
+
+limitation 3:
+IN effective_permission.py
+EffectivePermission.via records one reachability path, not all paths.
+Full path enumeration for remediation analysis is deferred to the graph layer in Session 7, which operates on the complete, undeduplicated relationship set.
+Trust is treated as sufficient for reachability (no check that the caller's own policy grants sts:AssumeRole, and no handling of the account-root trust exception).
+Condition blocks in trust policies are ignored.
+Deny, permission boundaries, and session policies are out of scope, as documented earlier.

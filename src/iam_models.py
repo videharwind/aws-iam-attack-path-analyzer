@@ -51,6 +51,13 @@ class TrustPrincipal:
     principal_type: str
     identifier : str
 
+@dataclass
+class EffectivePermission:
+    identity_arn : str
+    action : str
+    resource : str
+    via : list[str]
+
 def user_from_aws(user_data):
     return IAMUser(
         name = user_data['UserName'],

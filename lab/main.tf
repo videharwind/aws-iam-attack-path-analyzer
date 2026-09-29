@@ -107,3 +107,65 @@ resource "aws_iam_role_policy_attachment" "tptotr2"{
     role = aws_iam_role.tr2.name
     policy_arn = aws_iam_policy.tp.arn
 }
+resource "aws_iam_role_policy_attachment" "tptotr"{
+    role = aws_iam_role.tr.name
+    policy_arn = aws_iam_policy.tp.arn
+}
+
+resource "aws_iam_user" "tu2" {
+    name = "testuser2"
+}
+resource "aws_iam_role" "tr3"{
+    name = "testrole3"
+
+    assume_role_policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Action = "sts:AssumeRole"
+                Effect = "Allow"
+                Sid = ""
+                Principal = {
+                    AWS = aws_iam_user.tu2.arn
+                }
+            },
+        ]
+    })
+}
+resource "aws_iam_role" "tr4"{
+    name = "testrole4"
+    assume_role_policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Action = "sts:AssumeRole"
+                Effect = "Allow"
+                Sid = ""
+                Principal = {
+                    AWS = aws_iam_user.tu2.arn
+                }
+            },
+        ]
+    })
+}
+resource "aws_iam_role" "tr5"{
+    name = "testrole5"
+    assume_role_policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Action = "sts:AssumeRole"
+                Effect = "Allow"
+                Sid = ""
+                Principal = {
+                    AWS = [aws_iam_role.tr3.arn,aws_iam_role.tr4.arn]
+                }
+            },
+        ]
+    })
+}
+
+resource "aws_iam_role_policy_attachment" "tp2totr5"{
+    role = aws_iam_role.tr5.name
+    policy_arn = aws_iam_policy.tp2.arn
+}
