@@ -44,7 +44,7 @@ def find_policy_path_role(identity_arn,inventory):
             via_path = current_path + [policy]
             policy_path_tuple_list.append((policy,via_path))
 
-        further_roles = find_assumable_roles(role,inventory=inventory)
+        further_roles = find_assumable_roles(current_role,inventory=inventory)
         for further_role in further_roles:
             if further_role not in visited:
                 visited.add(further_role)
