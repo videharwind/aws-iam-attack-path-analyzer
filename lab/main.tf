@@ -15,6 +15,22 @@ resource "aws_iam_user" "tu"{
     name = "testuser"
     
 }
+data "aws_iam_policy_document" "assume_testrole"{
+    statement {
+        effect = "Allow"
+
+        actions = ["sts:AssuemRole"]
+
+        resources = [
+            aws_iam_role.tr.arn
+        ]
+    }
+}
+resource "aws_iam_user_policy" "testuser_assume_testrole"{
+    name = "testuser-assume-testrole"
+    user = aws_iam_user.tu.name
+    policy = data.aws_iam_policy_document.assume_testrole.json
+}
 
 resource "aws_iam_group" "tg"{
     name = "testgroup"

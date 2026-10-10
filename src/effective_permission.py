@@ -1,5 +1,5 @@
 from iam_models import EffectivePermission
-from IAM_Inventory import filterinventory
+from IAM_Inventory import filter_inventory
 from IAM_Enumerator import enumerate_policy_document
 from policy_parser import parse_policy
 def resolve_user_permissions(user,inventory):
@@ -8,10 +8,13 @@ def resolve_user_permissions(user,inventory):
     for policy_path_pair in policy_path_tuple_list:
         temp_effective_permissions = permission_from_policy(policy_arn=policy_path_pair[0],via_path=policy_path_pair[1],identity_arn=user.arn)
         effective_permissions.extend(temp_effective_permissions)
+    return effective_permissions
 
-    policy_path_role_tuple_list = find_policy_path_role(user.arn,inventory)
+def resolve_role_permission(role,inventory):
+    effective_permissions = []
+    policy_path_role_tuple_list = find_attached_policy_to_role(role.arn,inventory)
     for policy_path_pair in policy_path_role_tuple_list:
-        temp_effective_permissions = permission_from_policy(policy_arn=policy_path_pair[0],via_path=policy_path_pair[1],identity_arn=user.arn)
+        temp_effective_permissions = permission_from_policy(policy_arn=policy_path_pair[0],via_path=policy_path_pair[1],identity_arn=role.arn)
         effective_permissions.extend(temp_effective_permissions)
 
     return(effective_permissions)
@@ -25,6 +28,16 @@ def find_assumable_roles(user_arn,inventory):
     assumable_roles.extend(roles)
     return assumable_roles
 
+def find_attached_policy_to_role(identity_arn,inventory):
+    policy_path_tuple_list = []
+    attached_policies = get_targets(inventory=inventory,source_arn=identity_arn,relationship_type='attached-policy')
+    for policy in attached_policies:
+        via_path = [identity_arn,policy]
+        policy_path_tuple_list.append((policy,via_path))
+
+    return policy_path_tuple_list
+
+        
 def find_policy_path_role(identity_arn,inventory):
     policy_path_tuple_list = []
     #finding attached policies to roles
@@ -96,7 +109,7 @@ def find_policy_path(user,inventory):
             policy_path_tuple_list.append((policy,via_path))
     return policy_path_tuple_list
 
-
+filterinventory = filter_inventory()
 '''
 from iam_models import IAMInventory, IAMRelationship
 
@@ -110,10 +123,15 @@ fake_inventory = IAMInventory(users=[], groups=[], roles=[], policies=[], relati
 result = find_policy_path_role("userX", fake_inventory)
 print(result)  # should return (empty, since no policies attached) without hanging
 '''
-'''
-testuser2 = next(user for user in filterinventory.users if user.name == "testuser2")
-print(resolve_user_permissions(testuser2,filterinventory))
-'''
+
+testuser = next(user for user in filterinventory.users if user.name == "testuser")
+print(resolve_user_permissions(testuser,filterinventory))
+testrole3 = next(role for role in filterinventory.roles if role.name == "testrole3")
+print(resolve_role_permission(testrole3,filterinventory))
+testrole5 = next(role for role in filterinventory.roles if role.name == "testrole5")
+print(resolve_role_permission(testrole5,filterinventory))
+
+
 '''
 print(filterinventory.users)
 print(filterinventory.relationships)

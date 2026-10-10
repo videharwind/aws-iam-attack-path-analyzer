@@ -81,7 +81,7 @@ def build_inventory():
         relationships = relationships
     )
 
-def filter_inventory(inventory,prefix="test"):
+def filter_(inventory,prefix="test"):
     filtered_users = []
     filtered_groups = []
     filtered_roles =  []
@@ -127,6 +127,11 @@ def filter_inventory(inventory,prefix="test"):
     print(filtered_policies)
     '''
 
-
-iaminventory = build_inventory()
-filterinventory = filter_inventory(iaminventory)
+def filter_inventory():
+    inventory = build_inventory()
+    filterinventory = filter_(inventory,prefix="test")
+    return filterinventory
+'''
+filterinventory = filter_inventory()
+print(filterinventory.relationships)
+'''

@@ -10,6 +10,32 @@ limitation 3:
 IN effective_permission.py
 EffectivePermission.via records one reachability path, not all paths.
 Full path enumeration for remediation analysis is deferred to the graph layer in Session 7, which operates on the complete, undeduplicated relationship set.
-Trust is treated as sufficient for reachability (no check that the caller's own policy grants sts:AssumeRole, and no handling of the account-root trust exception).
+
+*Trust is treated as sufficient for reachability (no check that the caller's own policy grants sts:AssumeRole, and no handling of the account-root trust exception).
+
 Condition blocks in trust policies are ignored.
 Deny, permission boundaries, and session policies are out of scope, as documented earlier.
+
+limitation 4:
+Edge type naming: edge "type" attributes currently store the raw
+IAMRelationship.relationship strings ("member-of", "attached-policy",
+"trusted-to-assume") rather than the MEMBER_OF/ATTACHED_TO/TRUSTS/CAN_ASSUME
+vocabulary originally proposed. "trusted-to-assume" specifically means
+TRUSTS (trust policy names this principal) — it is NOT equivalent to
+CAN_ASSUME (trust AND the caller's own sts:AssumeRole permission confirmed),
+which is not yet implemented. If/when the two-sided check is built, it
+should use a distinct edge type (e.g. "can-assume"), not overwrite or reuse
+"trusted-to-assume".
+
+keep in mind 1:
+"vulnerability-combination checks must be evaluated per-node, grouped by via_path's attachment point, not against the flattened per-user output of resolve_user_permissions.
+
+
+important Limitation 5: 
+build_graph() labels any relationship endpoint that isn't in the inventory's node lists as type Service. This was valid until enumerate_policies() switched to Scope='Local'. AWS-managed policies (for example arn:aws:iam::aws:policy/AdministratorAccess) are no longer in inventory.policies, but they still appear as relationship targets from the attachment calls. They are therefore added to the graph as Service nodes with the full ARN as their name.
+
+Impact: The graph is mislabeled, but permission resolution is unaffected, because policy documents are fetched by ARN. Type-based filtering (for example a principal-only view that hides Policy nodes) will still show AWS-managed policies. Detecting high-value attachments such as AdministratorAccess by node type will miss them. It is not visible in the filtered test* lab graph, which has no AWS-managed attachments. It will appear in the unfiltered inventory (alpha, friends).
+
+Planned fix: Classify unknown endpoints by identifier shape instead of assuming Service. Identifiers ending in .amazonaws.com become Service. An IAM ARN with account field "aws" and resource "policy/..." becomes Policy (optionally flagged aws_managed=True). The identifier "*" becomes Wildcard. Anything else not in the inventory (cross-account ARNs, account root) becomes External.
+
+Done when: test_graph_builder.py asserts the correct type for an AWS-managed policy, "*", and an external account ARN.

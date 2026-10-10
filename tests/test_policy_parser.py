@@ -26,8 +26,8 @@ def test_trust_policy_statement():
     from trust_policy_parser import parse_trust_statement
     statement = {"Effect": "Allow", "Action": "sts:AssumeRole", "Principal": {"AWS": "arn:aws:iam::123456789012:user/testuser"}}
     result = parse_trust_statement(statement)
-    assert result.principal_type == "AWS"
-    assert result.identifier == "arn:aws:iam::123456789012:user/testuser"
+    assert result[0].principal_type == "AWS"
+    assert result[0].identifier == "arn:aws:iam::123456789012:user/testuser"
 
 def test_trust_policy_parser():
     from trust_policy_parser import parse_trust_policy
