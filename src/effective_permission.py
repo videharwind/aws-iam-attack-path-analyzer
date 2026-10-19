@@ -79,7 +79,7 @@ def permission_from_policy(policy_arn,via_path,identity_arn):
                     identity_arn= identity_arn,
                     action= a,
                     resource= r,
-                    via = via_path
+                    via = list(via_path)
                 ))
     return effectivepermissions
 
@@ -109,7 +109,19 @@ def find_policy_path(user,inventory):
             policy_path_tuple_list.append((policy,via_path))
     return policy_path_tuple_list
 
-filterinventory = filter_inventory()
+def build_permission_map(inventory):
+    permission_map = dict() 
+    for user in inventory.users:
+        temp_permissions = resolve_user_permissions(user,inventory=inventory)
+        permission_map[user.arn] = temp_permissions 
+    for role in inventory.roles:
+        temp_permissions = resolve_role_permission(role,inventory=inventory)
+        permission_map[role.arn] = temp_permissions
+
+    return permission_map
+
+#filterinventory = filter_inventory()
+#print(build_permission_map(filterinventory))
 '''
 from iam_models import IAMInventory, IAMRelationship
 
@@ -123,15 +135,14 @@ fake_inventory = IAMInventory(users=[], groups=[], roles=[], policies=[], relati
 result = find_policy_path_role("userX", fake_inventory)
 print(result)  # should return (empty, since no policies attached) without hanging
 '''
-
+'''
 testuser = next(user for user in filterinventory.users if user.name == "testuser")
 print(resolve_user_permissions(testuser,filterinventory))
 testrole3 = next(role for role in filterinventory.roles if role.name == "testrole3")
 print(resolve_role_permission(testrole3,filterinventory))
 testrole5 = next(role for role in filterinventory.roles if role.name == "testrole5")
 print(resolve_role_permission(testrole5,filterinventory))
-
-
+'''
 '''
 print(filterinventory.users)
 print(filterinventory.relationships)

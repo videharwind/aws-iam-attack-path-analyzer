@@ -19,7 +19,7 @@ data "aws_iam_policy_document" "assume_testrole"{
     statement {
         effect = "Allow"
 
-        actions = ["sts:AssuemRole"]
+        actions = ["sts:AssumeRole"]
 
         resources = [
             aws_iam_role.tr.arn
@@ -30,6 +30,26 @@ resource "aws_iam_user_policy" "testuser_assume_testrole"{
     name = "testuser-assume-testrole"
     user = aws_iam_user.tu.name
     policy = data.aws_iam_policy_document.assume_testrole.json
+}
+resource "aws_iam_policy" "standalone_assume_policy"{
+    name = "test-standalone-assume-policy"
+    description = "Test standalone policy for aws minor project"
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Action = [
+                    "sts:AssumeRole"
+                ]
+                Effect = "Allow"
+                Resource = aws_iam_role.tr.arn
+            },
+        ]
+    })
+}
+resource "aws_iam_user_policy_attachment" "standalone_assume_policy_tu"{
+    user = aws_iam_user.tu.name
+    policy_arn = aws_iam_policy.standalone_assume_policy.arn
 }
 
 resource "aws_iam_group" "tg"{

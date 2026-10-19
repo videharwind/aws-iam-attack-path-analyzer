@@ -2,7 +2,7 @@ from IAM_Inventory import filter_inventory
 import networkx as nx
 from pyvis.network import Network
 def build_graph(inventory):
-    graph = nx.DiGraph()
+    graph = nx.MultiDiGraph()
     
     for user in inventory.users:
         graph.add_node(user.arn,type = "User", name = user.name)
@@ -18,11 +18,12 @@ def build_graph(inventory):
             graph.add_node(relationship.source,type="Service",name = relationship.source)
         if relationship.target not in graph.nodes():
             graph.add_node(relationship.target,type="Service",name = relationship.target)
-        graph.add_edge(relationship.source,relationship.target,type = relationship.relationship)
+        graph.add_edge(relationship.source,relationship.target,key=relationship.relationship,type = relationship.relationship)
     
     return graph
 
-
+graph = build_graph(filter_inventory())
+print(graph.edges.data())
 '''
 graph = build_graph(filterinventory)
 nt = Network(directed = True)

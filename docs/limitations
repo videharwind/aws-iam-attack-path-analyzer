@@ -39,3 +39,8 @@ Impact: The graph is mislabeled, but permission resolution is unaffected, becaus
 Planned fix: Classify unknown endpoints by identifier shape instead of assuming Service. Identifiers ending in .amazonaws.com become Service. An IAM ARN with account field "aws" and resource "policy/..." becomes Policy (optionally flagged aws_managed=True). The identifier "*" becomes Wildcard. Anything else not in the inventory (cross-account ARNs, account root) becomes External.
 
 Done when: test_graph_builder.py asserts the correct type for an AWS-managed policy, "*", and an external account ARN.
+
+Limitation 6:
+NotPrincipal statements are skipped, not interpreted.
+Condition blocks in trust policies are still ignored.
+A plain-string principal is assumed to be *. AWS only allows * there, but the parser doesn’t check this

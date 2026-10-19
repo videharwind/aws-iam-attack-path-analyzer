@@ -131,7 +131,9 @@ def filter_inventory():
     inventory = build_inventory()
     filterinventory = filter_(inventory,prefix="test")
     return filterinventory
+
 '''
 filterinventory = filter_inventory()
-print(filterinventory.relationships)
+print(filterinventory.users)
+print(filterinventory.roles)
 '''

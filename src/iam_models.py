@@ -57,6 +57,12 @@ class EffectivePermission:
     action : str
     resource : str
     via : list[str]
+@dataclass
+class CanAssumeEdge:
+    source : str
+    target : str
+    reason : str
+    evidence : list[str]
 
 def user_from_aws(user_data):
     return IAMUser(
