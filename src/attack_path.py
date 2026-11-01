@@ -23,8 +23,8 @@ def add_can_assume_edges(graph,can_assume_edges):
 def attack_view(graph):
     
     def filter_node(n):
-        if graph.nodes[n]['type'] == 'User' or graph.nodes[n]['type'] == "Role":
-            return True
+        if graph.nodes[n].get('type') == 'User' or graph.nodes[n].get('type') == "Role":
+            return True 
         else:
             return False
     def filter_edge(source,target,key):

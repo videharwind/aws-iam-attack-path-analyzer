@@ -1,0 +1,15 @@
+"filename", "language", "Python", "comment", "blank", "total"
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\IAM_Enumerator.py", "Python", 115, 3, 34, 152
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\IAM_Inventory.py", "Python", 117, 0, 22, 139
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\__init__.py", "Python", 0, 0, 1, 1
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\assume_role.py", "Python", 68, 2, 11, 81
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\attack_detection.py", "Python", 15, 0, 4, 19
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\attack_path.py", "Python", 47, 0, 12, 59
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\effective_permission.py", "Python", 140, 9, 27, 176
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\graph.py", "Python", 34, 0, 4, 38
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\iam_models.py", "Python", 140, 0, 29, 169
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\main.py", "Python", 3, 0, 2, 5
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\policy_matcher.py", "Python", 9, 0, 6, 15
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\policy_parser.py", "Python", 34, 0, 4, 38
+"c:\Users\videh\Desktop\programming\aws\aws-iam-attack-path-analyzer\src\trust_policy_parser.py", "Python", 35, 1, 9, 45
+"Total", "-", 757, 15, 165, 937

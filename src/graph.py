@@ -22,8 +22,8 @@ def build_graph(inventory):
     
     return graph
 
-graph = build_graph(filter_inventory())
-print(graph.edges.data())
+#graph = build_graph(filter_inventory())
+#print(graph.edges.data())
 '''
 graph = build_graph(filterinventory)
 nt = Network(directed = True)
