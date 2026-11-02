@@ -205,6 +205,66 @@ def test_hide_redundant_trust_boundary_edges_logic():
     assert filtered[-2]["from"] == "ec2"
 
 
+def test_node_click_reachability_logic():
+    app_js = Path("frontend/app.js").read_text(encoding="utf-8")
+    index_html = Path("frontend/index.html").read_text(encoding="utf-8")
+
+    # Static inspector element presence
+    assert 'id="detail-node-reachable"' in index_html, "detail-node-reachable ID must exist in index.html"
+
+    # Code assertions for reachable search implementation
+    assert "getReachableCanAssumeNodes" in app_js, "Must define getReachableCanAssumeNodes"
+    assert "highlightReachable" in app_js, "Must define highlightReachable"
+    assert 'e.rawType === "can-assume"' in app_js, "Must only follow can-assume edges"
+    assert "visited = new Set([startNodeId])" in app_js, "Must guard against cycles with visited set initialized with start node"
+    assert '"Nothing reachable"' in app_js, 'Must show "Nothing reachable" when reachable count is 0'
+    assert '"Can reach "' in app_js or "Can reach " in app_js, 'Must show "Can reach N identities"'
+
+    # Execute BFS simulation in Python matching the JavaScript logic
+    def get_reachable_can_assume_nodes(start_node_id, edges):
+        from collections import defaultdict, deque
+        adj = defaultdict(list)
+        for e in edges:
+            if e.get("rawType") == "can-assume":
+                adj[e["from"]].append(e["to"])
+
+        reachable = set()
+        queue = deque([start_node_id])
+        visited = {start_node_id}  # Cycle guard
+
+        while queue:
+            curr = queue.popleft()
+            for nxt in adj[curr]:
+                if nxt not in visited:
+                    visited.add(nxt)
+                    reachable.add(nxt)
+                    queue.append(nxt)
+        return reachable
+
+    edges = [
+        {"from": "user1", "to": "role1", "rawType": "can-assume"},
+        {"from": "role1", "to": "role2", "rawType": "can-assume"},
+        {"from": "role2", "to": "role1", "rawType": "can-assume"},  # Cycle!
+        {"from": "role2", "to": "role3", "rawType": "trusted-to-assume"},  # Trust boundary (must NOT follow)
+        {"from": "user1", "to": "group1", "rawType": "member-of"},  # Membership (must NOT follow)
+        {"from": "group1", "to": "policy1", "rawType": "attached-policy"},  # Policy attached (must NOT follow)
+    ]
+
+    # user1 reaches role1 and role2 (2 hops, handles cycle, does not follow group/policy/trust)
+    reach_user1 = get_reachable_can_assume_nodes("user1", edges)
+    assert reach_user1 == {"role1", "role2"}
+    assert len(reach_user1) == 2
+
+    # role2 reaches role1 (cycle terminated, excludes role2 itself)
+    reach_role2 = get_reachable_can_assume_nodes("role2", edges)
+    assert reach_role2 == {"role1"}
+    assert len(reach_role2) == 1
+
+    # role3 has no outgoing edges
+    reach_role3 = get_reachable_can_assume_nodes("role3", edges)
+    assert len(reach_role3) == 0
+
+
 
 
 

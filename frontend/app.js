@@ -297,6 +297,8 @@ function onNodeClicked(params, dataSetNodes, dataSetEdges) {
   const typeEl = document.getElementById("detail-node-type");
   const nameEl = document.getElementById("detail-node-name");
   const arnEl = document.getElementById("detail-node-arn");
+  const reachField = document.getElementById("detail-node-reach-field");
+  const reachEl = document.getElementById("detail-node-reachable");
 
   if (params.nodes && params.nodes.length > 0) {
     const nodeId = params.nodes[0];
@@ -306,14 +308,105 @@ function onNodeClicked(params, dataSetNodes, dataSetEdges) {
       if (nameEl) nameEl.textContent = nodeObj.rawName;
       if (arnEl) arnEl.textContent = nodeObj.id;
       if (panel) panel.style.display = "block";
-      highlightNodeNeighborhood(nodeId);
+
+      if (nodeObj.rawType === "User" || nodeObj.rawType === "Role") {
+        const edgesToUse = (fullEdgesDataSet && fullEdgesDataSet.length > 0)
+          ? fullEdgesDataSet.get()
+          : dataSetEdges.get();
+        const reachableSet = getReachableCanAssumeNodes(nodeId, edgesToUse);
+        const reachableCount = reachableSet.size;
+
+        if (reachField) reachField.style.display = "flex";
+        if (reachEl) {
+          reachEl.textContent = reachableCount === 0
+            ? "Nothing reachable"
+            : `Can reach ${reachableCount} identities`;
+        }
+
+        highlightReachable(nodeId, reachableSet);
+      } else {
+        if (reachField) reachField.style.display = "none";
+        if (reachEl) reachEl.textContent = "";
+        highlightNodeNeighborhood(nodeId);
+      }
       return;
     }
   }
 
   // Clicked empty canvas or unselected
   if (panel) panel.style.display = "none";
+  if (reachField) reachField.style.display = "none";
+  if (reachEl) reachEl.textContent = "";
   clearHighlight();
+}
+
+function getReachableCanAssumeNodes(startNodeId, edges) {
+  const adj = new Map();
+  for (const e of edges) {
+    if (e.rawType === "can-assume") {
+      if (!adj.has(e.from)) adj.set(e.from, []);
+      adj.get(e.from).push(e.to);
+    }
+  }
+
+  const reachable = new Set();
+  const queue = [startNodeId];
+  const visited = new Set([startNodeId]);
+
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    const neighbors = adj.get(curr) || [];
+    for (const nxt of neighbors) {
+      if (!visited.has(nxt)) {
+        visited.add(nxt);
+        reachable.add(nxt);
+        queue.push(nxt);
+      }
+    }
+  }
+
+  return reachable;
+}
+
+function highlightReachable(clickedNodeId, reachableSet) {
+  const highlightNodeIds = new Set(reachableSet);
+  highlightNodeIds.add(clickedNodeId);
+
+  function applyReachable(dataSetNodes, dataSetEdges) {
+    const allNodes = dataSetNodes.get();
+    const nodeUpdates = allNodes.map((n) => ({
+      id: n.id,
+      opacity: highlightNodeIds.has(n.id) ? 1.0 : 0.50,
+    }));
+    dataSetNodes.update(nodeUpdates);
+
+    const allEdges = dataSetEdges.get();
+    const edgeUpdates = allEdges.map((e) => {
+      const isCanAssume = e.rawType === "can-assume";
+      const isHighlighted = isCanAssume && highlightNodeIds.has(e.from) && highlightNodeIds.has(e.to);
+      const conf = EDGE_CONFIG[e.rawType] || {
+        color: "#475569",
+        highlight: "#94a3b8",
+        hover: "#cbd5e1",
+        width: 1.5,
+      };
+      return {
+        id: e.id,
+        color: isHighlighted
+          ? { color: "#fbbf24", highlight: "#f59e0b", hover: "#f59e0b", inherit: false, opacity: 1.0 }
+          : { color: conf.color, highlight: conf.color, hover: conf.color, inherit: false, opacity: 0.50 },
+        width: isHighlighted ? 4 : 1,
+      };
+    });
+    dataSetEdges.update(edgeUpdates);
+  }
+
+  if (fullNodesDataSet && fullEdgesDataSet) {
+    applyReachable(fullNodesDataSet, fullEdgesDataSet);
+  }
+  if (attackNodesDataSet && attackEdgesDataSet) {
+    applyReachable(attackNodesDataSet, attackEdgesDataSet);
+  }
 }
 
 function highlightNodeNeighborhood(nodeId) {
@@ -459,6 +552,10 @@ async function refreshLoadedData() {
 
   const panel = document.getElementById("node-details-panel");
   if (panel) panel.style.display = "none";
+  const reachField = document.getElementById("detail-node-reach-field");
+  if (reachField) reachField.style.display = "none";
+  const reachEl = document.getElementById("detail-node-reachable");
+  if (reachEl) reachEl.textContent = "";
 
   const fullData = await apiCall("/api/graph/full");
   const attackData = await apiCall("/api/graph/attack");
@@ -648,6 +745,15 @@ function clearHighlight() {
   const reasonsContainer = document.getElementById("hop-reasons-container");
   if (reasonsContainer) {
     reasonsContainer.style.display = "none";
+  }
+
+  const reachField = document.getElementById("detail-node-reach-field");
+  if (reachField) {
+    reachField.style.display = "none";
+  }
+  const reachEl = document.getElementById("detail-node-reachable");
+  if (reachEl) {
+    reachEl.textContent = "";
   }
 }
 
