@@ -16,6 +16,7 @@ from attack_path import (
     TRAVERSABLE_EDGE_TYPES,
     add_can_assume_edges,
     attack_view,
+    find_reachable,
 )
 
 
@@ -344,3 +345,168 @@ def test_view_is_read_only():
     view = attack_view(lab_graph())
     with pytest.raises(nx.NetworkXError):
         view.add_edge(U("testuser"), R("testrole5"), key="can-assume")
+
+# ---------- find_reachable ----------
+
+# 1
+def test_find_reachable_diamond_keys():
+    g = lab_graph()
+    res = find_reachable(g, U("testuser2"))
+    assert set(res.keys()) == {R("testrole3"), R("testrole4"), R("testrole5")}
+
+
+# 2
+def test_find_reachable_path_to_testrole5():
+    g = lab_graph()
+    res = find_reachable(g, U("testuser2"))
+    path = res[R("testrole5")]
+    assert len(path) == 3
+    assert path[0] == U("testuser2")
+    assert path[-1] == R("testrole5")
+    view = attack_view(g)
+    for u, v in zip(path[:-1], path[1:]):
+        assert view.has_edge(u, v, key="can-assume")
+
+
+# 3
+def test_find_reachable_direct_neighbour():
+    g = lab_graph()
+    res = find_reachable(g, U("testuser2"))
+    assert res[R("testrole3")] == [U("testuser2"), R("testrole3")]
+
+
+# 4
+def test_find_reachable_testuser_reaches_only_testrole():
+    res = find_reachable(lab_graph(), U("testuser"))
+    assert res == {R("testrole"): [U("testuser"), R("testrole")]}
+
+
+# 5
+def test_find_reachable_testrole5_reaches_empty():
+    res = find_reachable(lab_graph(), R("testrole5"))
+    assert res == {}
+
+
+# 6
+def test_find_reachable_testrole2_not_in_any_result():
+    g = lab_graph()
+    for src in [U("testuser"), U("testuser2"), R("testrole"), R("testrole3"), R("testrole4"), R("testrole5")]:
+        assert R("testrole2") not in find_reachable(g, src)
+
+
+# 7
+def test_find_reachable_cycle_terminates_and_excludes_source():
+    g = make_graph(users=["a"], roles=["b"], pairs=[(U("a"), R("b")), (R("b"), U("a"))])
+    res_a = find_reachable(g, U("a"))
+    assert U("a") not in res_a
+    assert res_a == {R("b"): [U("a"), R("b")]}
+    res_b = find_reachable(g, R("b"))
+    assert R("b") not in res_b
+    assert res_b == {U("a"): [R("b"), U("a")]}
+
+
+# 8
+def test_find_reachable_empty_graph_unknown_source_raises():
+    with pytest.raises(ValueError):
+        find_reachable(nx.MultiDiGraph(), U("ghost"))
+
+
+# 9
+def test_find_reachable_max_hops_2_gives_3_roles():
+    g = lab_graph()
+    res = find_reachable(g, U("testuser2"), max_hops=2)
+    assert set(res.keys()) == {R("testrole3"), R("testrole4"), R("testrole5")}
+
+
+# 10
+def test_find_reachable_max_hops_1_excludes_testrole5():
+    g = lab_graph()
+    res = find_reachable(g, U("testuser2"), max_hops=1)
+    assert R("testrole5") not in res
+    assert set(res.keys()) == {R("testrole3"), R("testrole4")}
+
+
+# 11
+def test_find_reachable_max_hops_0_gives_empty():
+    g = lab_graph()
+    assert find_reachable(g, U("testuser2"), max_hops=0) == {}
+
+
+# 12
+def test_find_reachable_max_hops_none_gives_all():
+    g = lab_graph()
+    res = find_reachable(g, U("testuser2"), max_hops=None)
+    assert set(res.keys()) == {R("testrole3"), R("testrole4"), R("testrole5")}
+
+
+# 13
+def test_find_reachable_negative_max_hops_raises():
+    g = lab_graph()
+    with pytest.raises(ValueError):
+        find_reachable(g, U("testuser2"), max_hops=-1)
+
+
+# 14
+def test_find_reachable_unknown_source_raises():
+    with pytest.raises(ValueError):
+        find_reachable(lab_graph(), U("unknown_user"))
+
+
+# 15
+def test_find_reachable_non_user_or_role_source_raises():
+    g = lab_graph()
+    with pytest.raises(ValueError):
+        find_reachable(g, GROUP)
+    with pytest.raises(ValueError):
+        find_reachable(g, POLICY)
+    with pytest.raises(ValueError):
+        find_reachable(g, SERVICE)
+
+
+# 16
+def test_find_reachable_trust_only_edge_never_walked():
+    g = build_graph(make_inventory(users=["u"], roles=["r"], relationships=[trust(U("u"), R("r"))]))
+    assert find_reachable(g, U("u")) == {}
+
+
+# 17
+def test_find_reachable_trust_only_first_hop_never_walked():
+    g = build_graph(make_inventory(users=["u"], roles=["r1", "r2"], relationships=[trust(U("u"), R("r1"))]))
+    add_can_assume_edges(g, [can_assume(R("r1"), R("r2"))])
+    assert find_reachable(g, U("u")) == {}
+
+
+# 18
+def test_find_reachable_graph_not_mutated():
+    g = lab_graph()
+    nodes_before = list(g.nodes(data=True))
+    edges_before = list(g.edges(keys=True, data=True))
+    find_reachable(g, U("testuser2"))
+    assert list(g.nodes(data=True)) == nodes_before
+    assert list(g.edges(keys=True, data=True)) == edges_before
+
+
+# 19
+def test_find_reachable_returns_fresh_dict_each_call():
+    g = lab_graph()
+    r1 = find_reachable(g, U("testuser2"))
+    r1["mutated"] = "bad"
+    r1[R("testrole3")].append("bad")
+    r2 = find_reachable(g, U("testuser2"))
+    assert "mutated" not in r2
+    assert r2[R("testrole3")] == [U("testuser2"), R("testrole3")]
+
+
+# 20
+def test_find_reachable_unknown_source_message_contains_arn():
+    ghost_arn = U("ghost_user")
+    with pytest.raises(ValueError) as excinfo:
+        find_reachable(lab_graph(), ghost_arn)
+    assert ghost_arn in str(excinfo.value)
+
+
+# 21
+def test_find_reachable_negative_max_hops_message_contains_value():
+    with pytest.raises(ValueError) as excinfo:
+        find_reachable(lab_graph(), U("testuser2"), max_hops=-42)
+    assert "-42" in str(excinfo.value)

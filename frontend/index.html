@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IAM Attack Path Analyzer</title>
+  <link rel="stylesheet" href="/static/vendor/vis-network.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <span class="brand-glyph" aria-hidden="true">&#x25C7;</span>
+        <div class="brand-text">
+          <span class="brand-title">IAM Attack Path Analyzer</span>
+          <span class="brand-sub">Cloud Identity Graph Topology</span>
+        </div>
+      </div>
+      <nav class="top-nav" aria-label="Main Navigation">
+        <a href="/" class="nav-link active" aria-current="page">Analyzer</a>
+        <a href="/how-to-use" class="nav-link">How to use</a>
+        <a href="/about" class="nav-link">About</a>
+      </nav>
+    </div>
+    <div class="banner-strip" role="region" aria-label="Model scope disclaimer">
+      <div class="banner-content">
+        <span class="banner-pill">SIMPLIFIED MODEL</span>
+        <span class="banner-text">Plausible access paths under a simplified IAM model. Explicit Deny, Conditions, permission boundaries and SCPs are not evaluated.</span>
+      </div>
+    </div>
+  </header>
+
+  <div id="error-alert" class="global-alert" style="display: none;" role="alert"></div>
+
+  <section class="summary-bento" aria-label="Environment telemetry">
+    <div class="summary-grid">
+      <div class="bento-card stat-card">
+        <span class="card-label">Users</span>
+        <span id="card-users" class="card-val">-</span>
+      </div>
+      <div class="bento-card stat-card">
+        <span class="card-label">Groups</span>
+        <span id="card-groups" class="card-val">-</span>
+      </div>
+      <div class="bento-card stat-card">
+        <span class="card-label">Roles</span>
+        <span id="card-roles" class="card-val">-</span>
+      </div>
+      <div class="bento-card stat-card">
+        <span class="card-label">Policies</span>
+        <span id="card-policies" class="card-val">-</span>
+      </div>
+      <div class="bento-card stat-card highlight-metric">
+        <span class="card-label">Traversable Edges</span>
+        <span id="card-edges" class="card-val">-</span>
+      </div>
+      <div class="bento-card meta-card">
+        <span class="card-label">Active Snapshot</span>
+        <span id="card-snapshot" class="card-meta-text mono-clip">-</span>
+      </div>
+      <div class="bento-card meta-card">
+        <span class="card-label">Target Account</span>
+        <span id="card-account" class="card-meta-text mono-tag">-</span>
+      </div>
+      <div class="bento-card meta-card">
+        <span class="card-label">Captured Date</span>
+        <span id="card-created" class="card-meta-text mono-clip">-</span>
+      </div>
+    </div>
+  </section>
+
+  <main id="main-content" class="workspace-layout">
+    <aside class="control-sidebar" aria-label="Analysis controls and identity queries">
+      <!-- Snapshot Manager Bento -->
+      <section class="panel-box" aria-labelledby="heading-snapshot-mgr">
+        <div class="panel-header">
+          <span class="panel-icon" aria-hidden="true">&#x25A4;</span>
+          <h2 id="heading-snapshot-mgr">Snapshot Source</h2>
+        </div>
+        <div class="field-stack">
+          <label for="snapshot-select" class="field-label">Available Snapshots</label>
+          <div class="input-inline">
+            <select id="snapshot-select" class="styled-select" aria-label="Select snapshot from server"></select>
+            <button id="load-btn" type="button" class="btn btn-secondary">Load</button>
+          </div>
+        </div>
+        <div class="field-stack upload-field-stack">
+          <label for="upload-input" class="field-label">Upload JSON Snapshot</label>
+          <input type="file" id="upload-input" accept=".json" class="file-input-custom" aria-label="Upload snapshot JSON file">
+        </div>
+      </section>
+
+      <!-- Identity Explorer Bento -->
+      <section class="panel-box" aria-labelledby="heading-identity-query">
+        <div class="panel-header">
+          <span class="panel-icon" aria-hidden="true">&#x25C9;</span>
+          <h2 id="heading-identity-query">Identity Explorer</h2>
+        </div>
+        <div class="field-stack">
+          <label for="identity-select" class="field-label">Source Identity</label>
+          <select id="identity-select" class="styled-select" aria-label="Select identity to evaluate reachability"></select>
+        </div>
+        <div class="field-stack">
+          <label for="max-hops-input" class="field-label">Max Escalation Hops <span class="muted-note">(blank = unlimited)</span></label>
+          <input type="number" id="max-hops-input" min="0" max="20" placeholder="e.g. 3" class="styled-input">
+        </div>
+        <div class="button-row">
+          <button id="show-reachable-btn" type="button" class="btn btn-primary">Find Escalation Paths</button>
+          <button id="clear-highlight-btn" type="button" class="btn btn-ghost">Reset Highlighting</button>
+        </div>
+
+        <div class="query-feedback-area">
+          <div id="lookup-hint-msg" class="callout-hint">Choose an identity and click Find Escalation Paths.</div>
+          <div id="empty-results-msg" class="callout-empty" style="display: none;">Nothing reachable from this identity.</div>
+
+          <table id="reachable-table" class="data-table" style="display: none;" aria-label="Reachable targets">
+            <thead>
+              <tr>
+                <th scope="col">Target Role</th>
+                <th scope="col">Hops</th>
+                <th scope="col">Escalation Path</th>
+              </tr>
+            </thead>
+            <tbody id="reachable-tbody"></tbody>
+          </table>
+
+          <div id="hop-reasons-container" class="hop-reasons-card" style="display: none;">
+            <div class="hop-reasons-title">Step-by-Step Reason Chain</div>
+            <div id="hop-reasons-list" class="hop-reasons-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Node Inspector Bento -->
+      <section id="node-details-panel" class="panel-box inspector-panel" style="display: none;" aria-labelledby="heading-inspector">
+        <div class="panel-header">
+          <span class="panel-icon" aria-hidden="true">&#x25EB;</span>
+          <h2 id="heading-inspector">Node Inspector</h2>
+        </div>
+        <div class="inspector-meta-grid">
+          <div class="inspector-field">
+            <span class="inspector-key">Type</span>
+            <span id="detail-node-type" class="inspector-val badge-type"></span>
+          </div>
+          <div class="inspector-field">
+            <span class="inspector-key">Entity Name</span>
+            <span id="detail-node-name" class="inspector-val bold-name"></span>
+          </div>
+          <div class="inspector-field full-width">
+            <span class="inspector-key">Resource ARN</span>
+            <span id="detail-node-arn" class="inspector-val mono-arn"></span>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Hero Graph Section -->
+    <section class="graph-section" aria-label="Graph visualization view">
+      <div class="graph-toolbar">
+        <div class="tab-pill-group" role="tablist" aria-label="Graph perspectives">
+          <button id="tab-btn-full" role="tab" aria-selected="true" class="tab-btn active">Full Topology</button>
+          <button id="tab-btn-attack" role="tab" aria-selected="false" class="tab-btn">Attack View</button>
+        </div>
+        <label class="toggle-control">
+          <input type="checkbox" id="hide-policies-checkbox">
+          <span class="toggle-slider" aria-hidden="true"></span>
+          <span class="toggle-label">Hide Policies</span>
+        </label>
+      </div>
+
+      <div class="canvas-viewport">
+        <div id="full-graph-view" class="graph-view active" role="tabpanel">
+          <div id="full-network-container" class="graph-container"></div>
+        </div>
+        <div id="attack-graph-view" class="graph-view" role="tabpanel">
+          <div id="attack-network-container" class="graph-container"></div>
+        </div>
+      </div>
+
+      <div class="legend-bar" role="region" aria-label="Graph Legend">
+        <div class="legend-heading">Entities:</div>
+        <div class="legend-items">
+          <div class="legend-item"><span class="legend-symbol sym-user" style="background:#38bdf8;"></span> User</div>
+          <div class="legend-item"><span class="legend-symbol sym-group" style="background:#f97316;"></span> Group</div>
+          <div class="legend-item"><span class="legend-symbol sym-role" style="background:#a855f7;"></span> Role</div>
+          <div class="legend-item"><span class="legend-symbol sym-policy" style="background:#34d399;"></span> Policy</div>
+          <div class="legend-item"><span class="legend-symbol sym-service" style="background:#eab308;"></span> Service</div>
+          <div class="legend-item"><span class="legend-symbol sym-wildcard" style="background:#ef4444;"></span> Wildcard</div>
+          <div class="legend-item"><span class="legend-symbol sym-external" style="background:#94a3b8;"></span> External</div>
+        </div>
+        <div class="legend-divider" aria-hidden="true"></div>
+        <div class="legend-heading">Transitions:</div>
+        <div class="legend-items">
+          <div class="legend-item"><span class="legend-line edge-can-assume" style="background:#f59e0b;"></span> Can-Assume</div>
+          <div class="legend-item"><span class="legend-line edge-trust" style="background:#818cf8;"></span> Trust Boundary</div>
+          <div class="legend-item"><span class="legend-line edge-attach" style="background:#34d399;"></span> Policy Attached</div>
+          <div class="legend-item"><span class="legend-line edge-member" style="background:#fb923c;"></span> Member Of</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="roadmap-strip">
+    <div class="roadmap-inner">
+      <div class="roadmap-title">Roadmap (planned capabilities):</div>
+      <ul class="roadmap-list">
+        <li><span class="planned-tag">[Planned]</span> Privilege classification (admin, data access, privilege escalation)</li>
+        <li><span class="planned-tag">[Planned]</span> Drift detection between snapshots</li>
+        <li><span class="planned-tag">[Planned]</span> Risk scoring &amp; blast radius</li>
+        <li><span class="planned-tag">[Planned]</span> Compliance &amp; auditor PDF reporting</li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="/static/vendor/vis-network.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

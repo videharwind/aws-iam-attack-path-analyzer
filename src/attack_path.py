@@ -1,58 +1,51 @@
-from assume_role import find_can_assume
 import networkx as nx
-from graph import build_graph
-from IAM_Inventory import filter_inventory
-from pyvis.network import Network
-from effective_permission import build_permission_map
+
 TRAVERSABLE_EDGE_TYPES = frozenset({"can-assume"})
 
-def add_can_assume_edges(graph,can_assume_edges):
-    newgraph = graph
+
+def add_can_assume_edges(graph, can_assume_edges):
+    """Validates all edges first, then adds them; modifies the graph in place and returns it; raises ValueError and adds nothing if any endpoint is unknown."""
     for edge in can_assume_edges:
-        if edge.source not in newgraph or edge.target not in newgraph:
+        if edge.source not in graph or edge.target not in graph:
             raise ValueError(
                 f"can-assume edge reference unknown identity: "
                 f"{edge.source} -> {edge.target}"
             )
     for edge in can_assume_edges:
-        if edge.source in newgraph and edge.target in newgraph:
-            newgraph.add_edge(edge.source,edge.target,key = 'can-assume',type="can-assume",reason=edge.reason,evidence=edge.evidence)
+        graph.add_edge(
+            edge.source,
+            edge.target,
+            key="can-assume",
+            type="can-assume",
+            reason=edge.reason,
+            evidence=edge.evidence,
+        )
+    return graph
 
-    return newgraph
 
 def attack_view(graph):
-    
+    """Returns a read-only subgraph view containing only User and Role nodes and traversable attack edges."""
     def filter_node(n):
-        if graph.nodes[n].get('type') == 'User' or graph.nodes[n].get('type') == "Role":
-            return True 
-        else:
-            return False
-    def filter_edge(source,target,key):
+        return graph.nodes[n].get("type") in ("User", "Role")
+
+    def filter_edge(source, target, key):
         return key in TRAVERSABLE_EDGE_TYPES
-    
+
     view = nx.subgraph_view(
         graph,
         filter_node=filter_node,
-        filter_edge=filter_edge
+        filter_edge=filter_edge,
     )
-    return view        
+    return view
 
-def find_reachable(graph,source_arn,max_hops = None):
+
+def find_reachable(graph, source_arn, max_hops=None):
+    """Finds shortest path per target; which of two equal-length paths is returned is not guaranteed; only the attack view is searched; cycles are safe; returns {target_arn: [source, ..., target]}, source excluded, {} when nothing reachable."""
+    if max_hops is not None and max_hops < 0:
+        raise ValueError(f"max_hops cannot be negative: {max_hops}")
     view = attack_view(graph)
     if source_arn not in view:
-        raise ValueError("source node not present in graph view")
-    if max_hops is not None and max_hops <0:
-        raise ValueError("Max Hop can not be negative")
-    reachables = nx.single_source_shortest_path(view,source_arn,cutoff=max_hops)
+        raise ValueError(f"{source_arn} is not a user or role in the graph")
+    reachables = nx.single_source_shortest_path(view, source_arn, cutoff=max_hops)
     reachables.pop(source_arn)
     return reachables
-    
-
-
-graph = attack_view(add_can_assume_edges(build_graph(filter_inventory()),find_can_assume(filter_inventory(),build_permission_map(filter_inventory()))))
-print(find_reachable(graph,'arn:aws:iam::944146429179:user/testuser2'))
-nt = Network(directed = True)
-nt.from_nx(graph)
-nt.write_html('nx2.html',notebook = False)
-
-

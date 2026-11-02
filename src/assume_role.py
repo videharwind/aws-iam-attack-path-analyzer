@@ -1,6 +1,4 @@
-from effective_permission import build_permission_map
 from policy_matcher import action_matches,resource_matches
-from IAM_Inventory import filter_inventory
 from trust_policy_parser import parse_trust_policy
 from iam_models import CanAssumeEdge
 def find_assume_permissions(permissions,role_arn):

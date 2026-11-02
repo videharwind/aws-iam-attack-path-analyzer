@@ -1,5 +1,4 @@
 from iam_models import EffectivePermission
-from IAM_Inventory import filter_inventory
 from IAM_Enumerator import enumerate_policy_document
 from policy_parser import parse_policy
 def resolve_user_permissions(user,inventory):

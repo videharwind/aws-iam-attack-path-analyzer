@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "account_id": "123456789012",
+    "prefix": "test",
+    "created_at": "2026-11-01T00:00:00Z",
+    "tool_version": "0.1"
+  },
+  "inventory": {
+    "users": [
+      {
+        "name": "testuser",
+        "id": "AIDA1111111111111",
+        "arn": "arn:aws:iam::123456789012:user/testuser"
+      },
+      {
+        "name": "testuser2",
+        "id": "AIDA2222222222222",
+        "arn": "arn:aws:iam::123456789012:user/testuser2"
+      }
+    ],
+    "groups": [
+      {
+        "name": "testgroup",
+        "id": "AGPA1111111111111",
+        "arn": "arn:aws:iam::123456789012:group/testgroup"
+      }
+    ],
+    "roles": [
+      {
+        "name": "testrole",
+        "id": "AROA1111111111111",
+        "arn": "arn:aws:iam::123456789012:role/testrole",
+        "trust_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::123456789012:user/testuser"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      },
+      {
+        "name": "testrole2",
+        "id": "AROA2222222222222",
+        "arn": "arn:aws:iam::123456789012:role/testrole2",
+        "trust_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      },
+      {
+        "name": "testrole3",
+        "id": "AROA3333333333333",
+        "arn": "arn:aws:iam::123456789012:role/testrole3",
+        "trust_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::123456789012:user/testuser2"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      },
+      {
+        "name": "testrole4",
+        "id": "AROA4444444444444",
+        "arn": "arn:aws:iam::123456789012:role/testrole4",
+        "trust_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::123456789012:user/testuser2"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      },
+      {
+        "name": "testrole5",
+        "id": "AROA5555555555555",
+        "arn": "arn:aws:iam::123456789012:role/testrole5",
+        "trust_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  "arn:aws:iam::123456789012:role/testrole3",
+                  "arn:aws:iam::123456789012:role/testrole4"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      }
+    ],
+    "policies": [
+      {
+        "name": "testpolicy",
+        "arn": "arn:aws:iam::123456789012:policy/testpolicy",
+        "id": "ANPA1111111111111"
+      },
+      {
+        "name": "testpolicy2",
+        "arn": "arn:aws:iam::123456789012:policy/testpolicy2",
+        "id": "ANPA2222222222222"
+      },
+      {
+        "name": "test-standalone-assume-policy",
+        "arn": "arn:aws:iam::123456789012:policy/test-standalone-assume-policy",
+        "id": "ANPA3333333333333"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "arn:aws:iam::123456789012:user/testuser",
+        "relationship": "member-of",
+        "target": "arn:aws:iam::123456789012:group/testgroup"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:group/testgroup",
+        "relationship": "attached-policy",
+        "target": "arn:aws:iam::123456789012:policy/testpolicy2"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:role/testrole2",
+        "relationship": "attached-policy",
+        "target": "arn:aws:iam::123456789012:policy/testpolicy"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:role/testrole",
+        "relationship": "attached-policy",
+        "target": "arn:aws:iam::123456789012:policy/testpolicy"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:role/testrole5",
+        "relationship": "attached-policy",
+        "target": "arn:aws:iam::123456789012:policy/testpolicy2"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:user/testuser",
+        "relationship": "attached-policy",
+        "target": "arn:aws:iam::123456789012:policy/test-standalone-assume-policy"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:user/testuser",
+        "relationship": "trusted-to-assume",
+        "target": "arn:aws:iam::123456789012:role/testrole"
+      },
+      {
+        "source": "ec2.amazonaws.com",
+        "relationship": "trusted-to-assume",
+        "target": "arn:aws:iam::123456789012:role/testrole2"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:user/testuser2",
+        "relationship": "trusted-to-assume",
+        "target": "arn:aws:iam::123456789012:role/testrole3"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:user/testuser2",
+        "relationship": "trusted-to-assume",
+        "target": "arn:aws:iam::123456789012:role/testrole4"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:role/testrole3",
+        "relationship": "trusted-to-assume",
+        "target": "arn:aws:iam::123456789012:role/testrole5"
+      },
+      {
+        "source": "arn:aws:iam::123456789012:role/testrole4",
+        "relationship": "trusted-to-assume",
+        "target": "arn:aws:iam::123456789012:role/testrole5"
+      }
+    ]
+  },
+  "permission_map": {
+    "arn:aws:iam::123456789012:user/testuser": [
+      {
+        "identity_arn": "arn:aws:iam::123456789012:user/testuser",
+        "action": "sts:AssumeRole",
+        "resource": "arn:aws:iam::123456789012:role/testrole",
+        "via": [
+          "arn:aws:iam::123456789012:policy/test-standalone-assume-policy"
+        ]
+      },
+      {
+        "identity_arn": "arn:aws:iam::123456789012:user/testuser",
+        "action": "s3:GetObject",
+        "resource": "*",
+        "via": [
+          "arn:aws:iam::123456789012:group/testgroup",
+          "arn:aws:iam::123456789012:policy/testpolicy2"
+        ]
+      }
+    ],
+    "arn:aws:iam::123456789012:user/testuser2": [],
+    "arn:aws:iam::123456789012:role/testrole": [],
+    "arn:aws:iam::123456789012:role/testrole2": [],
+    "arn:aws:iam::123456789012:role/testrole3": [],
+    "arn:aws:iam::123456789012:role/testrole4": [],
+    "arn:aws:iam::123456789012:role/testrole5": []
+  }
+}

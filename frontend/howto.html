@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to use - IAM Attack Path Analyzer</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="content-container">
+    <nav class="top-nav" aria-label="Main Navigation">
+      <a href="/" class="nav-link">Analyzer</a>
+      <a href="/how-to-use" class="nav-link active" aria-current="page">How to use</a>
+      <a href="/about" class="nav-link">About</a>
+    </nav>
+
+    <header>
+      <h1>How to use</h1>
+      <div class="banner">
+        Step-by-step instructions for running local analysis and scanning AWS environments.
+      </div>
+    </header>
+
+    <section id="choose-your-path" class="doc-section">
+      <h2>Choose your path</h2>
+      <div class="cards-grid">
+        <div class="doc-card">
+          <h3>1. Try the sample (no AWS needed)</h3>
+          <p>Explore privilege escalation paths in a pre-built lab snapshot immediately. No cloud account or credentials required.</p>
+        </div>
+        <div class="doc-card">
+          <h3>2. Analyze your own AWS account</h3>
+          <p>Collect IAM configurations from your real environment using a read-only script, then load the generated JSON snapshot offline.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="setup" class="doc-section">
+      <h2>Setup</h2>
+      <p>Follow these numbered steps in your terminal to initialize and run the analyzer locally:</p>
+      <ol class="steps-list">
+        <li>
+          <p>Create a Python virtual environment:</p>
+          <pre><code>python -m venv .venv</code></pre>
+        </li>
+        <li>
+          <p>Activate the virtual environment:</p>
+          <pre><code>.venv\Scripts\Activate.ps1</code></pre>
+        </li>
+        <li>
+          <p>Install required dependencies:</p>
+          <pre><code>pip install -r requirements.txt</code></pre>
+        </li>
+        <li>
+          <p>Run the local API server and UI:</p>
+          <pre><code>uvicorn api:app --app-dir src --host 127.0.0.1 --port 8000</code></pre>
+          <p>Then open <code>127.0.0.1:8000</code> in your web browser.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section id="scan-your-own-account" class="doc-section">
+      <h2>Scan your own account (optional)</h2>
+      <p>Run the collector script to export IAM state to a snapshot file:</p>
+      <pre><code>python src/collect.py --profile &lt;your-profile&gt; --region us-east-1 --prefix test --out snapshots/mine.json</code></pre>
+      <p>
+        <strong>Parameters:</strong> <code>--prefix test</code> filters identities whose names start with &quot;test&quot;.
+        To scan every identity across the entire account without name filtering, use an empty prefix: <code>--prefix &quot;&quot;</code>.
+        The collector performs strictly read-only AWS API calls (<code>List</code> and <code>Get</code> actions) and typically finishes in 30 seconds or more depending on account size.
+      </p>
+      <p>Once generated, reload the Analyzer page and select <code>mine.json</code> from the Snapshot dropdown.</p>
+
+      <h3>Minimal Read-Only IAM Policy</h3>
+      <p>Attach this policy to the identity executing the collector:</p>
+      <pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "IAMReadOnlyCollection",
+      "Effect": "Allow",
+      "Action": [
+        "iam:List*",
+        "iam:Get*",
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    }
+  ]
+}</code></pre>
+    </section>
+
+    <section id="tour-of-analyzer" class="doc-section">
+      <h2>Tour of the Analyzer page</h2>
+      <ol class="steps-list">
+        <li><strong>Snapshot picker &amp; upload:</strong> Choose an existing snapshot from the dropdown and click Load, or upload a custom snapshot JSON file.</li>
+        <li><strong>Summary cards:</strong> Displays counts of Users, Groups, Roles, Policies, Can-Assume edges, the active Snapshot name, Account ID, and Created timestamp.</li>
+        <li><strong>Graph views:</strong> Toggle between the &quot;Full graph&quot; (showing all entities and relationships) and &quot;Attack graph&quot; (principals and traversable escalation edges). Use the &quot;Hide policies&quot; checkbox to reduce clutter.</li>
+        <li><strong>Node details:</strong> Click any node in either canvas to inspect its type, name, and full ARN in the details panel.</li>
+        <li><strong>Identity Explorer:</strong> Select an identity from the dropdown, optionally specify maximum hops, and click &quot;Show reachable&quot; to calculate attack paths.</li>
+        <li><strong>Path highlighting:</strong> Click any row in the reachable results table to highlight the specific escalation route in both graph views and view step-by-step hop reasons.</li>
+        <li><strong>Clear highlight:</strong> Click &quot;Clear highlight&quot; to reset node and edge opacity back to default.</li>
+      </ol>
+    </section>
+
+    <section id="reading-graphs" class="doc-section">
+      <h2>Reading the graphs</h2>
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Element</th>
+            <th>Type</th>
+            <th>Visual Style</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Node</td>
+            <td>User</td>
+            <td>Blue dot (#4299e1)</td>
+            <td>IAM user principal</td>
+          </tr>
+          <tr>
+            <td>Node</td>
+            <td>Group</td>
+            <td>Orange box (#ed8936)</td>
+            <td>IAM group containing users</td>
+          </tr>
+          <tr>
+            <td>Node</td>
+            <td>Role</td>
+            <td>Purple diamond (#9f7aea)</td>
+            <td>IAM role assumable by trusted principals</td>
+          </tr>
+          <tr>
+            <td>Node</td>
+            <td>Policy</td>
+            <td>Green dot (#48bb78)</td>
+            <td>Customer or AWS managed policy</td>
+          </tr>
+          <tr>
+            <td>Node</td>
+            <td>Service</td>
+            <td>Yellow dot (#ecc94b)</td>
+            <td>AWS service principal (e.g., ec2.amazonaws.com)</td>
+          </tr>
+          <tr>
+            <td>Node</td>
+            <td>Wildcard</td>
+            <td>Red dot (#e53e3e)</td>
+            <td>Wildcard principal (*)</td>
+          </tr>
+          <tr>
+            <td>Node</td>
+            <td>External</td>
+            <td>Grey dot (#a0aec0)</td>
+            <td>Principal outside scanned account</td>
+          </tr>
+          <tr>
+            <td>Edge</td>
+            <td>member-of</td>
+            <td>Solid grey/blue</td>
+            <td>User membership in an IAM group</td>
+          </tr>
+          <tr>
+            <td>Edge</td>
+            <td>attached-policy</td>
+            <td>Solid blue</td>
+            <td>Policy attached to user, group, or role</td>
+          </tr>
+          <tr>
+            <td>Edge</td>
+            <td>trusted-to-assume</td>
+            <td>Dashed slate</td>
+            <td>Trust policy grants assumption privilege (trust only)</td>
+          </tr>
+          <tr>
+            <td>Edge</td>
+            <td>can-assume</td>
+            <td>Thick red</td>
+            <td>Derived escalation path (identity can actually assume target role)</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 10px;">
+        <strong>Note on testrole2:</strong> In the sample environment, <code>testrole2</code> appears disconnected in the attack graph because its trust policy delegates trust to an AWS service principal (<code>ec2.amazonaws.com</code>) rather than a user or role identity.
+      </p>
+    </section>
+
+    <section id="reading-result" class="doc-section">
+      <h2>Reading a result</h2>
+      <p>
+        In the sample snapshot, running reachability analysis for <code>testuser2</code> returns three target roles:
+      </p>
+      <ul>
+        <li><code>testrole3</code> (1 hop): <code>testuser2 -&gt; testrole3</code></li>
+        <li><code>testrole4</code> (1 hop): <code>testuser2 -&gt; testrole4</code></li>
+        <li><code>testrole5</code> (2 hops): <code>testuser2 -&gt; testrole3 -&gt; testrole5</code> (or via <code>testrole4</code>)</li>
+      </ul>
+      <p>
+        <strong>Direct-trust vs Trust-and-permission:</strong>
+        When a role's trust policy explicitly designates an exact principal in the same account (e.g. <code>arn:aws:iam::123456789012:user/testuser2</code>), AWS allows assumption via <em>direct-trust</em> without requiring separate identity-based permissions.
+        When a trust policy specifies a broader target (such as account root, account ID, wildcard <code>*</code>, or an external account), the principal must also hold an explicit <code>sts:AssumeRole</code> identity policy (<em>trust-and-permission</em>).
+      </p>
+      <p>
+        The analyzer displays the single shortest escalation path for each reachable role.
+      </p>
+    </section>
+
+    <section id="troubleshooting" class="doc-section">
+      <h2>Troubleshooting</h2>
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Problem</th>
+            <th>Likely cause</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Unable to locate credentials</td>
+            <td>AWS CLI credentials or environment variables are not configured</td>
+            <td>Run <code>aws configure</code> or pass <code>--profile &lt;name&gt;</code> to the collector</td>
+          </tr>
+          <tr>
+            <td>AccessDenied</td>
+            <td>Scanning credentials lack required read permissions</td>
+            <td>Attach the minimal read-only collection policy shown above</td>
+          </tr>
+          <tr>
+            <td>Empty graph after a scan</td>
+            <td>The <code>--prefix</code> filter matched no IAM entities</td>
+            <td>Rerun collection with an empty prefix: <code>--prefix &quot;&quot;</code></td>
+          </tr>
+          <tr>
+            <td>Upload error message</td>
+            <td>JSON file is not a valid snapshot format</td>
+            <td>Ensure the file was generated by <code>collect.py</code> with <code>schema_version: 1</code></td>
+          </tr>
+          <tr>
+            <td>port 8000 already in use</td>
+            <td>Another process or server is listening on port 8000</td>
+            <td>Specify an alternate port: <code>--port 8001</code></td>
+          </tr>
+          <tr>
+            <td>Page blank offline</td>
+            <td>The local Uvicorn backend process is stopped</td>
+            <td>Start the server with <code>uvicorn api:app --app-dir src --host 127.0.0.1 --port 8000</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="safety-notes" class="doc-section">
+      <h2>Safety notes</h2>
+      <ul>
+        <li><strong>Localhost only:</strong> The web interface binds strictly to <code>127.0.0.1</code> and implements no authentication. Never expose port 8000 to public or untrusted network interfaces.</li>
+        <li><strong>Zero AWS writes:</strong> The collection script executes strictly read-only API calls (<code>iam:List*</code>, <code>iam:Get*</code>, <code>sts:GetCallerIdentity</code>). It never creates, updates, or deletes cloud resources.</li>
+        <li><strong>Snapshot hygiene:</strong> Snapshots record IAM entity names and structure. Custom snapshots generated in <code>snapshots/</code> are excluded by <code>.gitignore</code>. Never commit real account snapshots to version control.</li>
+        <li><strong>Data sensitivity:</strong> While AWS account IDs are not secrets, relationship mappings describe your organizational security posture. Exercise discretion when sharing screenshots.</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>
+

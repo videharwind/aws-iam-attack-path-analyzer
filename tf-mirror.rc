@@ -1,0 +1,9 @@
+provider_installation {
+  filesystem_mirror {
+    path    = "C:/Users/videh/Desktop/programming/aws/aws-iam-attack-path-analyzer/lab/.terraform/providers"
+    include = ["registry.terraform.io/hashicorp/aws"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/hashicorp/aws"]
+  }
+}

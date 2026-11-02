@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - IAM Attack Path Analyzer</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="content-container">
+    <nav class="top-nav" aria-label="Main Navigation">
+      <a href="/" class="nav-link">Analyzer</a>
+      <a href="/how-to-use" class="nav-link">How to use</a>
+      <a href="/about" class="nav-link active" aria-current="page">About</a>
+    </nav>
+
+    <header>
+      <h1>About this project</h1>
+      <p class="project-intro">
+        AWS IAM Attack Path Analyzer is a specialized security analysis engine designed to evaluate complex cloud identity topologies and reveal potential privilege escalation vectors. By modeling identities, group memberships, policy attachments, and trust boundaries as a mathematical directed graph, the tool uncovers hidden multi-step assumption paths that could permit low-privileged principals to escalate into administrative or sensitive cloud roles.
+      </p>
+      <p style="margin-top: 8px;">
+        <strong>A graph-based, deterministic, rule-based analyzer that finds chained AssumeRole paths in AWS IAM. (Not machine learning.)</strong>
+      </p>
+    </header>
+
+    <section id="the-problem" class="doc-section">
+      <h2>The problem</h2>
+      <p>
+        In modern enterprise AWS environments, permissions are fragmented across diverse configurations: user policies, group attachments, role trust policies, and customer-managed documents. Chained AssumeRole paths—where Principal A assumes Role B, which in turn can assume Role C—are exceptionally easy to miss during manual audits and standard IAM policy reviews.
+      </p>
+    </section>
+
+    <section id="how-it-works" class="doc-section">
+      <h2>How it works</h2>
+      <div class="flow-diagram">
+        <div class="flow-box">Collect (read-only, needs AWS)</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">Snapshot (JSON file)</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">Graph (users, groups, roles, policies)</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">Attack view (users &amp; roles + can-assume edges)</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">Reachable paths (shortest path with reasons)</div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <p>The analyzer evaluates escalations using deterministic IAM rules:</p>
+        <p>
+          First, a trust policy that names an exact same-account identity is sufficient on its own (direct trust).
+          Second, a trust policy designating an account root, an account ID, a wildcard <code>*</code>, or a foreign account also requires the caller identity to possess an explicit <code>sts:AssumeRole</code> identity-based permission.
+          Third, the analyzer synthesizes these factors into traversable <code>can-assume</code> graph edges and computes the shortest escalation path to each accessible role.
+        </p>
+      </div>
+    </section>
+
+    <section id="advantages" class="doc-section">
+      <h2>Advantages</h2>
+      <ul>
+        <li><strong>Offline analysis:</strong> Works completely offline after a single read-only collection scan.</li>
+        <li><strong>Zero AWS footprint:</strong> Never writes to, modifies, or creates resources in your cloud environment.</li>
+        <li><strong>Deterministic &amp; repeatable:</strong> Strictly rule-based calculations without stochastic heuristics or hallucinations.</li>
+        <li><strong>Transparent reasoning:</strong> Every escalation hop is fully explainable with explicit direct-trust or trust-and-permission evidence.</li>
+        <li><strong>Built-in sample:</strong> Includes sample laboratory data so anyone can evaluate the platform without AWS credentials.</li>
+        <li><strong>Snapshot comparisons:</strong> Snapshots facilitate historical auditing and planned configuration drift tracking.</li>
+      </ul>
+    </section>
+
+    <section id="limitations" class="doc-section">
+      <h2>Limitations</h2>
+      <ol class="limitations-list">
+        <li>Results are plausible access paths under a simplified IAM model, not proof.</li>
+        <li>Explicit Deny statements, Conditions, NotAction/NotResource, permission boundaries, SCPs, session policies and resource policies are not evaluated.</li>
+        <li>inline policies are not read yet.</li>
+        <li>Only the shortest path to each role is shown.</li>
+        <li>Only sts:AssumeRole chains are analyzed (other escalation techniques such as iam:PassRole or PutRolePolicy are planned).</li>
+        <li>Service principals, &quot;*&quot; and other accounts are never attack-graph nodes.</li>
+        <li>Customer-managed policies are listed with Scope=Local and AWS-managed policies are picked up from attachments.</li>
+        <li>The tool does not replace AWS IAM Access Analyzer or a manual review.</li>
+      </ol>
+      <p style="margin-top: 12px; font-style: italic; color: #a0aec0;">
+        Built and tested on a small lab account (2 users, 1 group, 5 roles, 3 policies).
+      </p>
+    </section>
+
+    <section id="related-tools" class="doc-section">
+      <h2>Related tools</h2>
+      <ul class="related-tools-list">
+        <li><strong>PMapper:</strong> The closest tool to this analyzer; constructs a directed graph of IAM relationships and derives escalation edges.</li>
+        <li><strong>BloodHound:</strong> Pioneered the security concept of pre-computing derived relationship edges and finding shortest escalation paths in Active Directory environments.</li>
+        <li><strong>Cloudsplaining:</strong> Evaluates IAM policies in isolation to detect privilege escalation opportunities without building an identity relationship graph.</li>
+        <li><strong>Repokid:</strong> Uses historic Access Advisor usage data to proactively trim unused permissions rather than evaluating graph paths.</li>
+        <li><strong>IAM-Vulnerable:</strong> Provides deliberately misconfigured Terraform IAM scenarios used to test and benchmark security scanners.</li>
+        <li><strong>Rhino Security Labs IAM Privilege Escalation:</strong> Authoritative research cataloging diverse AWS IAM privilege escalation primitives.</li>
+      </ul>
+    </section>
+
+    <section id="roadmap" class="doc-section">
+      <h2>Roadmap</h2>
+      <ul>
+        <li><span class="planned-tag">[Planned]</span> Privilege classification (admin, data access, privilege escalation)</li>
+        <li><span class="planned-tag">[Planned]</span> Additional escalation technique checks (iam:PassRole, CreateAccessKey, AttachRolePolicy)</li>
+        <li><span class="planned-tag">[Planned]</span> Drift detection between snapshots</li>
+        <li><span class="planned-tag">[Planned]</span> Risk scoring</li>
+        <li><span class="planned-tag">[Planned]</span> PDF reports</li>
+      </ul>
+    </section>
+
+    <section id="tech-stack" class="doc-section">
+      <h2>Tech stack</h2>
+      <p>Python 3.14, boto3, NetworkX, FastAPI, Uvicorn, vis-network, Terraform (test lab), pytest.</p>
+    </section>
+
+    <section id="project-info" class="doc-section project-info-section">
+      <h2>Project info</h2>
+      <p class="placeholder-notice">
+        [Student name] | [College] | [Guide]
+      </p>
+    </section>
+  </div>
+</body>
+</html>

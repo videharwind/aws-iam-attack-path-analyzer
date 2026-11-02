@@ -8,3 +8,10 @@ reports/*
 *.tfstate
 *.tfstate.backup
 .terraform/
+lib/
+nx*.html
+*.tfvars
+.VSCodeCounter/
+snapshots/*
+!snapshots/sample_lab.json
+

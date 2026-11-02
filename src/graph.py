@@ -1,38 +1,53 @@
-from IAM_Inventory import filter_inventory
 import networkx as nx
-from pyvis.network import Network
+
+
+def classify_node_type(identifier):
+    """Classifies an identifier into 'Service', 'Policy', 'Wildcard', or 'External'. Never raises."""
+    if not isinstance(identifier, str):
+        return "External"
+    if identifier == "*":
+        return "Wildcard"
+    if not identifier.startswith("arn:") and (
+        identifier.endswith(".amazonaws.com") or identifier.endswith(".amazonaws.com.cn")
+    ):
+        return "Service"
+    if identifier.startswith("arn:"):
+        parts = identifier.split(":")
+        if len(parts) >= 6 and parts[2] == "iam" and parts[5].startswith("policy/"):
+            return "Policy"
+    return "External"
+
+
 def build_graph(inventory):
     graph = nx.MultiDiGraph()
-    
+
     for user in inventory.users:
-        graph.add_node(user.arn,type = "User", name = user.name)
+        graph.add_node(user.arn, type="User", name=user.name)
     for group in inventory.groups:
-        graph.add_node(group.arn,type= "Group",name = group.name)
+        graph.add_node(group.arn, type="Group", name=group.name)
     for role in inventory.roles:
-        graph.add_node(role.arn,type="Role",name = role.name)
+        graph.add_node(role.arn, type="Role", name=role.name)
     for policy in inventory.policies:
-        graph.add_node(policy.arn,type="Policy",name = policy.name)
-    
+        graph.add_node(policy.arn, type="Policy", name=policy.name)
+
     for relationship in inventory.relationships:
         if relationship.source not in graph.nodes():
-            graph.add_node(relationship.source,type="Service",name = relationship.source)
+            graph.add_node(
+                relationship.source,
+                type=classify_node_type(relationship.source),
+                name=relationship.source,
+            )
         if relationship.target not in graph.nodes():
-            graph.add_node(relationship.target,type="Service",name = relationship.target)
-        graph.add_edge(relationship.source,relationship.target,key=relationship.relationship,type = relationship.relationship)
-    
-    return graph
+            graph.add_node(
+                relationship.target,
+                type=classify_node_type(relationship.target),
+                name=relationship.target,
+            )
+        graph.add_edge(
+            relationship.source,
+            relationship.target,
+            key=relationship.relationship,
+            type=relationship.relationship,
+        )
 
-#graph = build_graph(filter_inventory())
-#print(graph.edges.data())
-'''
-graph = build_graph(filterinventory)
-nt = Network(directed = True)
-nt.from_nx(graph)
-nt.write_html('nx.html',notebook = False)
-'''
-'''
-print(list(graph.successors("arn:aws:iam::944146429179:user/testuser2")))
-print(list(graph.predecessors("arn:aws:iam::944146429179:role/testrole")))
-print(nx.has_path(graph,'arn:aws:iam::944146429179:user/testuser2','arn:aws:iam::944146429179:role/testrole5'))
-print(graph.number_of_edges())
-'''
+    return graph

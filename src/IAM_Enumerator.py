@@ -1,7 +1,29 @@
-from main import client
+import boto3
+
+_client = None
+_settings = {"profile": None, "region": None}
+
+
+def configure_client(profile=None, region=None):
+    global _client, _settings
+    _settings["profile"] = profile
+    _settings["region"] = region
+    _client = None
+
+
+def get_client():
+    global _client
+    if _client is None:
+        session = boto3.Session(
+            profile_name=_settings["profile"],
+            region_name=_settings["region"],
+        )
+        _client = session.client("iam")
+    return _client
+
 
 def enumerate_users():
-    paginator = client.get_paginator('list_users')
+    paginator = get_client().get_paginator('list_users')
 
     users = []
 
@@ -10,8 +32,9 @@ def enumerate_users():
         users.extend(page['Users'])
     return users
 
+
 def enumerate_groups():
-    paginator = client.get_paginator('list_groups')
+    paginator = get_client().get_paginator('list_groups')
 
     groups = []
 
@@ -20,8 +43,9 @@ def enumerate_groups():
         groups.extend(page['Groups'])
     return groups
 
+
 def enumerate_roles():
-    paginator = client.get_paginator('list_roles')
+    paginator = get_client().get_paginator('list_roles')
 
     roles = []
 
@@ -30,8 +54,9 @@ def enumerate_roles():
         roles.extend(page['Roles'])
     return roles
 
+
 def enumerate_policies():
-    paginator = client.get_paginator('list_policies')
+    paginator = get_client().get_paginator('list_policies')
 
     policies = []
 
@@ -39,34 +64,37 @@ def enumerate_policies():
     for page in page_iterator:
         policies.extend(page['Policies'])
     return policies
-    
+
 
 def enumerate_inline_user_policies(user):
-    paginator = client.get_paginator('list_user_policies')
+    paginator = get_client().get_paginator('list_user_policies')
     inline_user_policies = []
     page_iterator = paginator.paginate(UserName = user)
     for page in page_iterator:
         inline_user_policies.extend(page['PolicyNames'])
     return inline_user_policies
 
+
 def enumerate_inline_group_policies(group):
-    paginator = client.get_paginator('list_group_policies')
+    paginator = get_client().get_paginator('list_group_policies')
     inline_group_policies = []
     page_iterator = paginator.paginate(GroupName = group)
     for page in page_iterator:
         inline_group_policies.extend(page['PolicyNames'])
     return inline_group_policies
 
+
 def enumerate_inline_role_policies(role):
-    paginator = client.get_paginator('list_role_policies')
+    paginator = get_client().get_paginator('list_role_policies')
     inline_role_policies = []
     page_iterator = paginator.paginate(RoleName = role)
     for page in page_iterator:
         inline_role_policies.extend(page['PolicyNames'])
     return inline_role_policies
 
+
 def enumerate_instance_profile():
-    paginator = client.get_paginator('list_instance_profiles')
+    paginator = get_client().get_paginator('list_instance_profiles')
 
     instance_profile = []
 
@@ -74,50 +102,55 @@ def enumerate_instance_profile():
     for page in page_iterator:
         instance_profile.extend(page['InstanceProfiles'])
     return instance_profile
-    
+
 
 def enumerate_attached_user_policies(user):
-    paginator = client.get_paginator('list_attached_user_policies')
+    paginator = get_client().get_paginator('list_attached_user_policies')
     attached_policies = []
     page_iterator = paginator.paginate(UserName = user)
     for page in page_iterator:
         attached_policies.extend(page['AttachedPolicies'])
     return attached_policies
 
+
 def enumerate_attached_group_policies(group):
 
-    paginator = client.get_paginator('list_attached_group_policies')
+    paginator = get_client().get_paginator('list_attached_group_policies')
     attached_policies = []
     page_iterator = paginator.paginate(GroupName = group)
     for page in page_iterator:
         attached_policies.extend(page['AttachedPolicies'])
     return attached_policies
 
+
 def enumerate_attached_role_policies(role):
-    paginator = client.get_paginator('list_attached_role_policies')
+    paginator = get_client().get_paginator('list_attached_role_policies')
     attached_policies = []
     page_iterator = paginator.paginate(RoleName = role)
     for page in page_iterator:
         attached_policies.extend(page['AttachedPolicies'])
     return attached_policies
 
+
 def enumerate_group_from_user(user):
-    paginator = client.get_paginator('list_groups_for_user')
+    paginator = get_client().get_paginator('list_groups_for_user')
     groups = []
     for page in paginator.paginate(UserName = user):
         groups.extend(page['Groups'])
     return groups
 
+
 def enumerate_policy_metadata(policy_arn):
-    response = client.get_policy(
+    response = get_client().get_policy(
         PolicyArn = policy_arn
     )
     return response
 
+
 def enumerate_policy_document(policy_arn):
     policy_metadata = enumerate_policy_metadata(policy_arn)
     version_id = policy_metadata['Policy']['DefaultVersionId']
-    response = client.get_policy_version(
+    response = get_client().get_policy_version(
         PolicyArn = policy_arn,
         VersionId = version_id
     )
